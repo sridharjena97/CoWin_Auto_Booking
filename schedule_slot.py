@@ -72,7 +72,7 @@ class CoWinBook():
 
             # User Age 18 or 45
             self.age = 18 if int(data["age"]) < 45 else 45
-            print(self.age)
+            # print(self.age)
             # Request Session
             self.session =  requests.Session() 
 
@@ -216,9 +216,8 @@ class CoWinBook():
                     capacity = session.get('available_capacity')
                     session_date = session.get('date')
                     vaccine_name = session.get('vaccine')
-                                        
                     if int(session.get('min_age_limit')) == self.age:
-                        if capacity > int(data["MinimumVaccineAvailability"]):
+                        if capacity >= int(data["MinimumVaccineAvailability"]):
                             MSG = f'💉 {capacity} #{vaccine_name} / {session_date} / {center_name} 📍{center_pin}'
 
                             # Send Notification via Termux:API App
