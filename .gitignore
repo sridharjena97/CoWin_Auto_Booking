@@ -1,2 +1,5 @@
 *.json
-9438366433
+*.log
+test.py
+test1.py
+appsettings.json

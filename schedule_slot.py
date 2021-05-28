@@ -1,3 +1,4 @@
+from typing import Counter
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 import datetime
@@ -7,22 +8,171 @@ import base64
 import time
 import json
 import re
-
-from requests.models import Response
-
+import winsound
+import threading
 
 def line_break(): print("*"*55)
 
 class CoWinBook():
 
     def __init__(self):
-        # Check Pincode
-        def validatePinCode(pin_codes_list):
-            for pin in pin_codes_list:
-                if len(pin)!=6:
-                    return False
-            return True
+        try:    
+            a = open("appsettings.json")
+        except FileNotFoundError:
+            self.collectDataFromCMD()
+        else:  
+            i = input("Do you want to load settings? y/n: ")
+            if i.lower()== "y":
+                self.setVarFromJSON()
+            else:
+                self.collectDataFromCMD()
+    # Collect data from cmd
+    def collectDataFromCMD(self):
+        self.mobile_no = self.collectMobile()
+        # Request Session
+        self.session =  requests.Session() 
+        # intializing session
+        self.getSession()
+        self.user_id = self.select_beneficiaries()  # Selected Users for Vaccination 
+        self.pincodes = self.collectPin()
+        self.center_id = []  # Selected Vaccination Centers
+        # Vaccination Center id and Session id for Slot Booking
+        self.vacc_center = None
+        self.vacc_session = None
+        self.slot_time = None
 
+        # Dose 1 or Dose 2
+        self.dose = self.collectDose()
+
+        # OTP Fetching method 
+        self.otp = None
+
+        # User Age 18 or 45
+        self.age = self.collectAge()
+        print(f"You fall in cat: {self.age}+")
+        
+
+        # Data for sending request
+        self.data = {} 
+
+        # Token Recieved from CoWIN
+        self.bearerToken = None  # Session Token
+
+        self.sleepinterval = self.collectSleep()
+        self.vaccinetype = self.collectVaccineType()
+        self.date = self.collectDate()
+        # Login and Save Token in file( filename same as mobile no)
+        
+        # self.select_beneficiaries()
+        self.writeJSON()
+        # Start Looping the booking process
+        self.booked = False
+        while self.booked==False:
+            self.request_slot(data)
+
+    # validate and write collected data into JSON file
+    def writeJSON(self):
+        global data
+        data = {
+            "BeneficiaryIds": self.user_id,
+            "mobile":self.mobile_no, 
+            "age":self.age,
+            "SleepIntervalInSeconds":self.sleepinterval,
+            "MinimumVaccineAvailability":len(self.user_id),
+            "DoseType":self.dose,
+            "VaccineFeeType": self.vaccinetype,
+            "VaccinationCentreName": "",
+            "PINCodes": self.pincodes,
+            "DateToSearch": self.date,
+            "DaysToSearchFurther":4
+        }
+        with open("appsettings.json","w") as f:
+            json.dump(data,f)
+
+    # collect date
+    def collectDate(self):
+        while True:
+            d = input("Enter date to search in dd-mm-yyyy format: ")
+            d1 = d.split('-')
+            if d1[0].isnumeric and d1[1].isnumeric and d1[2].isnumeric and 0<int(d1[0])<32 and 0<int(d1[1])<13 and len(d1[2])==4:
+                return datetime.datetime(day=int(d1[0]), month=int(d1[1]),year=int(d1[2])).strftime("%d-%m-%Y")
+            else:
+                print("Invalid Date. Please try again..")
+    # Collect vaccine type
+    def collectVaccineType(self):
+        print("1: Enter 1 for free\n2: Enter 2 for paid")
+        t = input("Enter your response(press enter to skip): ")
+        if t=='1' or t=='2':
+            if t =='1':
+                return 'Free'
+            if t=='2':
+                return 'Paid'
+        else:
+            return 'Free'
+
+
+    # collect sleep interval
+    def collectSleep(self):
+        i = input("Enter sleep time after a reqest(press enter to skip): ")
+        if i.isnumeric() and int(i)>20:
+            return int(i)
+        else:
+            return 20
+    # Collect Mobile No
+    def collectMobile(self):
+        while True:
+            m = input("Enter your mobile no: ")
+            if len(m)==10 and m.isnumeric():
+                return m
+            else:
+                print("Invalid input. Please Try Again......\n")
+    # Collect age from user
+    def collectAge(self):
+        age= int(input("Enter your age: "))
+        if age<18:
+            print("You are not eligible for vaccination")
+        elif age>= 18:
+            return 18 if age < 45 else 45
+        else:
+            print("Invalid input")
+
+    # Collect dose from user
+    def collectDose(self):
+        while True:
+            dose = int(input("\nSelect dose type:\n1. Enter 1 for dose-1\n2. Enter 2 for dose-2\nEnter your response here: "))
+            if dose == 1 or dose == 2:
+                print("you have selected dose-", dose)
+                return dose
+                
+            else:
+                print("Invalid input")
+                continue
+
+    # Collect pincodes from user
+    def collectPin(self):
+        pincode_list= []
+        while True:
+            pin = input("\nEnter a pincode: ")
+            if len(pin)==6:
+                pincode_list.append(pin)
+                i = input("Enter 'y' to add more pincodes or press enter to continue: ")
+                if i.lower()=='y':
+                    print(pincode_list)
+                    continue
+                else:
+                    print("\nSelected Pincodes are:", pincode_list)
+                    return pincode_list
+            else:
+                print("invalid input")
+
+    # Validate pin codes  
+    def validatePinCode(self, pin_codes_list):
+        for pin in pin_codes_list:
+            if len(pin)!=6:
+                return False
+        return True 
+
+    def setVarFromJSON(self):
         # checking json data
         def checkData(data):
             if data["BeneficiaryIds"]==[] or data["BeneficiaryIds"]==None:
@@ -43,54 +193,103 @@ class CoWinBook():
                 raise Exception("Error in Settings: Invalid dose type")
             elif data["VaccineFeeType"]=='free' or data["VaccineFeeType"]=='paid':
                 raise Exception("Error in Settings: Invalid vaccine type")
-            elif not validatePinCode(data["PINCodes"]):
-                raise Exception("Error in Settings: Please define dose type")
-
-
+            elif not self.validatePinCode(data["PINCodes"]):
+                raise Exception("Error in Settings: Please define dose type") 
+        # Opening JSON file
         try:
             with open("appsettings.json") as f:
                 data = json.load(f)
             checkData(data)
         except Exception as e:
             print(e)
-        else:
-            self.mobile_no = str(data["mobile"])
-            self.pincodes = data["PINCodes"] # Area Pincode
-            self.center_id = []  # Selected Vaccination Centers
-            self.user_id = data["BeneficiaryIds"]  # Selected Users for Vaccination 
+        self.mobile_no = str(data["mobile"])
+        self.pincodes = data["PINCodes"] # Area Pincode
+        self.center_id = []  # Selected Vaccination Centers
+        self.user_id = data["BeneficiaryIds"]  # Selected Users for Vaccination 
 
-            # Vaccination Center id and Session id for Slot Booking
-            self.vacc_center = None
-            self.vacc_session = None
-            self.slot_time = None
+        # Vaccination Center id and Session id for Slot Booking
+        self.vacc_center = None
+        self.vacc_session = None
+        self.slot_time = None
 
-            # Dose 1 or Dose 2 ( default : 1)
-            self.dose = data["DoseType"]
+        # Dose 1 or Dose 2 ( default : 1)
+        self.dose = data["DoseType"]
 
-            # OTP Fetching method 
-            self.otp = None
+        # OTP Fetching method 
+        self.otp = None
 
-            # User Age 18 or 45
-            self.age = 18 if int(data["age"]) < 45 else 45
-            # print(self.age)
-            # Request Session
-            self.session =  requests.Session() 
+        # User Age 18 or 45
+        self.age = 18 if int(data["age"]) < 45 else 45
+        # print(self.age)
+        # Request Session
+        self.session =  requests.Session() 
 
-            # Data for sending request
-            self.data = {} 
+        # Data for sending request
+        self.data = {} 
 
-            # Token Recieved from CoWIN
-            self.bearerToken = None  # Session Token
+        # Token Recieved from CoWIN
+        self.bearerToken = None  # Session Token
 
-        
-            # Login and Save Token in file( filename same as mobile no)
-            self.getSession()
+    
+        # Login and Save Token in file( filename same as mobile no)
+        self.getSession()
+        # self.select_beneficiaries()
 
-            # Start Looping the booking process
-            self.booked = False
-            while self.booked==False:
-                self.request_slot(data)
+        # Start Looping the booking process
+        self.booked = False
+        while self.booked==False:
+            self.request_slot(data)
 
+    
+    # select Beneficiary
+    def select_beneficiaries(self):
+
+        response = self.session.get('https://cdn-api.co-vin.in/api/v2/appointment/beneficiaries').json()
+
+        USERS = []
+        index = []
+        selected_user_ID = set()
+        selected_users = set()
+
+        if not response.get('beneficiaries',[]):
+            print("No user added in beneficiaries. Please visit cowin and register a member to continue.\n Exiting software.............")
+            exit()
+        # print(json.dumps(response, indent=3))
+        counter = 1
+        for user in response.get('beneficiaries'):
+            user_dict = {}
+            user_name = user.get("name")
+            reference_id = user.get("beneficiary_reference_id")
+            user_dict["index"] = counter
+            user_dict["user_name"] = user_name
+            user_dict["reference_ID"] = reference_id
+            USERS.append(user_dict)
+            index.append(counter)
+            counter+=1
+        isNotSelected = True
+        line_break()
+        print("Please select beneficiaries from below:\n")
+        while isNotSelected:
+            for data in USERS:
+                print(f"{data['index']}: Press {data['index']} to Select {data['user_name']} ")
+            selection = input("\n Enter Your response: ")
+            if int(selection) in index:
+                for data in USERS:
+                    if int(selection)== data['index']:
+                        selected_user_ID.add(data['reference_ID'])
+                        selected_users.add(data['user_name'])
+                else:
+                    i = input("Do you want to add more? Enter 'y' or press enter to continue: ")
+                    if i.lower()=="y":
+                        continue
+                    else:
+                        print("you have selected", selected_users)
+                        isNotSelected = False
+            else:
+                print("Invalid Selection\n")
+            
+         
+        return list(selected_user_ID)
 
     # Set Header in self.session = requests.Session()
     def set_headers(self):
@@ -112,7 +311,7 @@ class CoWinBook():
 
     # Save Token after login to CoWIN
     def putSession(self):
-        with open(self.mobile_no, "w") as f:
+        with open(f"{self.mobile_no}.log", "w") as f:
             f.write(self.bearerToken)
             
 
@@ -120,7 +319,7 @@ class CoWinBook():
     def getSession(self):
         self.set_headers()
         try:
-            with open(self.mobile_no, "r") as f:
+            with open(f"{self.mobile_no}.log", "r") as f:
                 self.bearerToken = f.read()
             self.session.headers.update({
                     'Authorization': 'Bearer {}'.format(self.bearerToken)
@@ -160,6 +359,12 @@ class CoWinBook():
 
     # Request for OTP 
     def get_otp(self):
+        def play():
+            for i in range(10):
+                winsound.Beep(500,200)
+
+        a= threading.Thread(target=play)
+        a.start()
         print(f"Otp sent to your mobile phone {self.mobile_no}")
         otp = input("\nEnter OTP : ")
 
@@ -187,7 +392,7 @@ class CoWinBook():
                 else:
                     continue
             elif response.status_code == 401:
-                print("Re-login Account : " + datetime.now().strftime("%H:%M:%S") + " 🤳")
+                print("Re-login Account : " + datetime.datetime.now().strftime("%H:%M:%S") + " 🤳")
                 self.login_cowin()
                 self.request_slot()
             else:
@@ -213,9 +418,11 @@ class CoWinBook():
 
                     center_name = center.get('name')
                     center_pin = center.get('pincode')
-                    capacity = session.get('available_capacity')
+                    capacity = session.get(f'available_capacity_dose{data["DoseType"]}')
                     session_date = session.get('date')
                     vaccine_name = session.get('vaccine')
+                    # vaccine_type = session.get('fee_type')
+                    # print(session)
                     if int(session.get('min_age_limit')) == self.age:
                         if capacity >= int(data["MinimumVaccineAvailability"]):
                             MSG = f'💉 {capacity} #{vaccine_name} / {session_date} / {center_name} 📍{center_pin}'
@@ -282,6 +489,7 @@ class CoWinBook():
 
     # Book Slot for Vaccination
     def book_slot(self):
+        exit()
         
         captcha = self.get_captcha()
 
