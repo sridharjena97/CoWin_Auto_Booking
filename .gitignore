@@ -2,4 +2,4 @@
 *.log
 test.py
 test1.py
-appsettings.json
+*.txt
