@@ -401,16 +401,20 @@ class CoWinBook():
             response = self.session.get(f'https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByPin?pincode={pincode}&date={data["DateToSearch"]}')
 
             if response.ok:
+                try:
                 # print(response.json())
-                if self.check_slot(response.json(),data=data, pincode=pincode):
-                    self.booked = True
-                    return True
-                else:
-                    continue
+                    if self.check_slot(response.json(),data=data, pincode=pincode):
+                        self.booked = True
+                        return True
+                    else:
+                        continue
+                except:
+                    print("Request Error. Too much requests.")
+                    break
             elif response.status_code == 401:
                 print("Re-login Account : " + datetime.datetime.now().strftime("%H:%M:%S") + " 🤳")
                 self.login_cowin()
-                self.request_slot()
+                self.request_slot(data)
             else:
                 print("Error Fetching slot:")
                 print(f"resp_Code = {response.status_code} and MSG:{response.json()}")
@@ -468,9 +472,9 @@ class CoWinBook():
                         else:
                             print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
                     else:
+                        print("[Warning!] No vaccination center found as per your search! Try to change search criteria.")
                         continue
         else:
-            print("[Warning!] No vaccination center found as per your search! Try to change search criteria.")
             return False
                     
                         
