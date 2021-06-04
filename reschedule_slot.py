@@ -135,7 +135,7 @@ class CoWinBook():
 
     # Save Token after login to CoWIN
     def putSession(self):
-        with open(self.mobile_no, "w") as f:
+        with open(f"{self.mobile_no}.log", "w") as f:
             f.write(self.bearerToken)
             
 
@@ -143,7 +143,7 @@ class CoWinBook():
     def getSession(self):
         self.set_headers()
         try:
-            with open(self.mobile_no, "r") as f:
+            with open(f"{self.mobile_no}.log", "r") as f:
                 self.bearerToken = f.read()
             self.session.headers.update({
                     'Authorization': 'Bearer {}'.format(self.bearerToken)
