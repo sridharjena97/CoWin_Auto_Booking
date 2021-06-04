@@ -11,11 +11,15 @@ This is python powered application **made only for educational purpose**, The au
 ## Features
 
 - Auto Book, Reschedule vaccination slots
-- Automatic OTP feature provided using Aritificial Intelligence
-- Auto relogin feature if application face an unexpected error
-- Search By your area pincode
+- Can use last used settings. No need to enter details again and again
+- Enhanced searching option
+- Automatically downloads your appointment slip after booking
+- Automatic OTP generation
+- Auto re-login feature if application face an unexpected error
+- Search By your area pin code
 - High Probability that a slot will be booked in 1-2 try
-
+- Change intelligent attributes manually from appsettings.json
+<div><pr style = "background-color: yellow">Don't change app settings.json if you are not aware of handling json files</pr></div>
 
 ## Installation
 
@@ -27,3 +31,10 @@ Install the dependencies and devDependencies and start the program.
 python -m pip install -r ./requirements.txt
 ```
 
+## Usage
+- Use appropriate python script as per your requirement
+- Follow the application instructions
+- Check appsettings.json to change settings manually
+
+## Development
+All pull requests are highly appreciable. Feel free to discuss with me regarding the project.
