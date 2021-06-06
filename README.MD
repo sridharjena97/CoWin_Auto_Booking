@@ -1,5 +1,5 @@
 # COWIN Automatic Slot Booking
-## _The pythonic way to book slot_
+## _The pythonic way to book cowin slot_
 
 [![Python|Powered](https://i.imgur.com/NcXy221.png)](https://python.org)
 
