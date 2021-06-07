@@ -92,6 +92,10 @@ class CoWinBook():
         with open("appsettings.json","w") as f:
             json.dump(data,f)
 
+    # Collect Vaccine Center Name
+    def collectCenterName(self):
+        a = input("Enter center name(Press")
+
     # Collect Vaccine Name
     def collectVaccineName(self):
         print("1: Enter 1 for COVISHIELD\n2: Enter 2 for COVAXIN\n3: Enter 3 for SPUTNIK V")
@@ -404,7 +408,7 @@ class CoWinBook():
 
             if response.ok:
                 try:
-                # print(response.json())
+                    # print(response.json())
                     if self.check_slot(response.json(),data=data, pincode=pincode):
                         self.booked = True
                         return True
@@ -436,18 +440,49 @@ class CoWinBook():
                 for session in center.get('sessions',[]):
                     self.vacc_center = center.get('center_id')
                     self.vacc_session = session.get("session_id")
-                    self.slot_time = session.get('slots')[0]
-
                     self.center_name = center.get('name')
-                    center_pin = center.get('pincode')
-                    capacity = session.get(f'available_capacity_dose{data["DoseType"]}')
-                    session_date = session.get('date')
-                    vaccine_name = session.get('vaccine')
-                    vaccine_type = center.get('fee_type')
-                    # Check with center name
-                    if data["VaccinationCentreName"] != "":
-                        if data["VaccineName"] != "":
-                            if int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and data["VaccineName"]== vaccine_name and (data["VaccinationCentreName"]).lower() in self.center_name.lower():
+                    slot_times = session.get('slots')
+                    slot_times.reverse() # reversing the slot list so booking chances will be higher
+                    for slot in slot_times:
+                        self.slot_time = slot# glitch[0] was default
+                        # self.slot_time = session.get('slots')[1]# glitch[0] was default
+                        center_pin = center.get('pincode')
+                        capacity = session.get(f'available_capacity_dose{data["DoseType"]}')
+                        session_date = session.get('date')
+                        vaccine_name = session.get('vaccine')
+                        vaccine_type = center.get('fee_type')
+                        # Check with center name
+                        if data["VaccinationCentreName"] != "":
+                            if data["VaccineName"] != "":
+                                if int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and data["VaccineName"]== vaccine_name and (data["VaccinationCentreName"]).lower() in self.center_name.lower():
+                                    if capacity >= int(data["MinimumVaccineAvailability"]):
+                                        MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
+                                        print("Hurry Centers Available\n",MSG)
+                                    
+                                        BOOKED = self.book_slot()
+                                        if BOOKED:
+                                            print("Shutting Down CoWin Script 👩‍💻 ")
+                                            return True
+                                    else:
+                                        print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
+                                else:
+                                    continue
+                            elif int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and (data["VaccinationCentreName"]).lower() in self.center_name.lower():
+                                if capacity >= int(data["MinimumVaccineAvailability"]):
+                                    MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
+
+                                    print("Hurry Centers Available\n",MSG)
+                                
+                                    BOOKED = self.book_slot()
+                                    if BOOKED:
+                                        print("Shutting Down CoWin Script 👩‍💻 ")
+                                        return True
+                                else:
+                                    print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
+
+                        # Check With Vaccine name
+                        elif data["VaccineName"] != "":
+                            if int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and data["VaccineName"]== vaccine_name:
                                 if capacity >= int(data["MinimumVaccineAvailability"]):
                                     MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
                                     print("Hurry Centers Available\n",MSG)
@@ -460,24 +495,12 @@ class CoWinBook():
                                     print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
                             else:
                                 continue
-                        elif int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and (data["VaccinationCentreName"]).lower() in self.center_name.lower():
+                        # Check With capacity
+                        elif int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type:
                             if capacity >= int(data["MinimumVaccineAvailability"]):
                                 MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
 
-                                print("Hurry Centers Available\n",MSG)
                             
-                                BOOKED = self.book_slot()
-                                if BOOKED:
-                                    print("Shutting Down CoWin Script 👩‍💻 ")
-                                    return True
-                            else:
-                                print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
-
-                    # Check With Vaccine name
-                    elif data["VaccineName"] != "":
-                        if int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type and data["VaccineName"]== vaccine_name:
-                            if capacity >= int(data["MinimumVaccineAvailability"]):
-                                MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
                                 print("Hurry Centers Available\n",MSG)
                             
                                 BOOKED = self.book_slot()
@@ -487,25 +510,10 @@ class CoWinBook():
                             else:
                                 print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
                         else:
+                            
                             continue
-                    # Check With capacity
-                    elif int(session.get('min_age_limit')) == self.age and data["VaccineFeeType"]==vaccine_type:
-                        if capacity >= int(data["MinimumVaccineAvailability"]):
-                            MSG = f'💉 {capacity} {vaccine_name} / {session_date} / {self.center_name} 📍{center_pin}'
-
-                         
-                            print("Hurry Centers Available\n",MSG)
-                        
-                            BOOKED = self.book_slot()
-                            if BOOKED:
-                                print("Shutting Down CoWin Script 👩‍💻 ")
-                                return True
-                        else:
-                            print(f"[info] Sorry {capacity} Vaccine Found found at {self.center_name} on {session_date}.")
-                    else:
-                        print("[Warning!] No vaccine slot found as per your search! Try changing search criteria.")
-                        continue
         else:
+            print("[Warning!] No vaccine slot found as per your search! Try changing search criteria.")
             return False
                     
                         
@@ -560,9 +568,9 @@ class CoWinBook():
             response = self.session.get(f'https://cdn-api.co-vin.in/api/v2/appointment/appointmentslip/download?appointment_id={self.appointmentID}')
             status = response.status_code
             if status == 200:
-                with open(f"{self.mobile_no}_appoint_slip_{self.appointmentID[:10]}.pdf", "wb") as f:
+                with open(f"{self.mobile_no}_appointment_slip_{self.appointmentID[:10]}.pdf", "wb") as f:
                     f.write(response.content)
-            if status == 400:
+            elif status == 400:
                 print("Unable to Print. Please download manually")
                 print(f'{status} : {response.json()}')
             else:
