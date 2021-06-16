@@ -575,6 +575,7 @@ class CoWinBook():
                 print(f'{status} : {response.json()}')
             else:
                 print("Unable to Print. Please download manually")
+                print(f'{status} : {response.json()}')
         except:
             print("Unable to Print. Please download manually")
 
