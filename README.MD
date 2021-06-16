@@ -33,9 +33,9 @@ python -m pip install -r ./requirements.txt
 
 ## Usage
 - Use appropriate python script as per your requirement
-        * For **Booking** Use **schedule_slot.py**
-        * For **Rescheduling** use **reschedule_slot.py**
-        * For **Cancellation** use **cancel_slot.py**
+        - For **Booking** Use **schedule_slot.py**
+        - For **Rescheduling** use **reschedule_slot.py**
+        - For **Cancellation** use **cancel_slot.py**
 - Follow the application instructions
 - Check appsettings.json to change settings manually
 
