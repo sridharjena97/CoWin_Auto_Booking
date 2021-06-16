@@ -5,13 +5,13 @@
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 
-This is python powered application **made only for educational purpose**, The author does not take any legal responsibility of using this software in commersial and personal use.
+This is python powered application **made only for educational purpose**, The author does not take any legal responsibility of using this software in commercial and personal use.
 
 
 ## Features
 
-- Auto Book, Reschedule vaccination slots
-- Can use last used settings. No need to enter details again and again
+- Auto Book, Reschedule and cancel vaccination slots
+- Remembers last used settings. No need to enter details again and again
 - Enhanced searching option
 - Automatically downloads your appointment slip after booking
 - Automatic OTP generation
@@ -33,6 +33,9 @@ python -m pip install -r ./requirements.txt
 
 ## Usage
 - Use appropriate python script as per your requirement
+        * For **Booking** Use **schedule_slot.py**
+        * For **Rescheduling** use **reschedule_slot.py**
+        * For **Cancellation** use **cancel_slot.py**
 - Follow the application instructions
 - Check appsettings.json to change settings manually
 
